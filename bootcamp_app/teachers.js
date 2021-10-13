@@ -1,22 +1,28 @@
 const { Pool } = require('pg');
 
 const pool = new Pool({
+  user: 'vagrant',
+  password: 'Vagrant1!',
   host: 'localhost',
+  port: 5432,
   database: 'bootcampx'
 });
-const chrtName = [`%${process.argv[2] || 'JUL02'}`];
+
+const values = [`${process.argv[2]}`]
+
 pool.query(`
-SELECT DISTINCT teachers.name as teacher, cohorts.name as cohort
-FROM teachers
-JOIN assistance_requests ON teacher_id = teachers.id
-JOIN students ON student_id = students.id
-JOIN cohorts ON cohort_id = cohorts.id
-WHERE cohorts.name like $1
-ORDER BY teacher;
-`, chrtName)
+  SELECT DISTINCT teachers.name as teacher, cohorts.name as cohort, COUNT(assistance_requests.*) as total_assistances
+  FROM teachers
+  JOIN assistance_requests ON teachers.id = teacher_id
+  JOIN students ON assistance_requests.student_id = students.id
+  JOIN cohorts ON students.cohort_id = cohorts.id
+  WHERE cohorts.name = $1
+  GROUP BY teachers.name, cohorts.name
+  ORDER BY total_assistances DESC;
+`, values)
 .then(res => {
-  res.rows.forEach(row => {
-    console.log(`${row.cohort}: ${row.teacher}`);
+  res.rows.forEach(data => {
+    console.log(`${data.cohort}: ${data.teacher}`);
   })
 })
 .catch(err => console.error('query error', err.stack));
